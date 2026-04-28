@@ -167,6 +167,70 @@ li {
     align-items: center;
 }
 
+.calendar-grid {
+    display: grid;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.calendar-header {
+    grid-column: 1 / -1;
+    background-color: rgba(232, 198, 106, 0.3);
+    border-radius: var(--border-radius);
+    padding: 15px;
+}
+
+.calendar-weekdays,
+.calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.calendar-weekday,
+.calendar-day {
+    background-color: var(--secondary-color);
+    border-radius: var(--border-radius);
+    padding: 10px;
+    min-height: 80px;
+    box-shadow: inset 0 0 0 1px rgba(38, 70, 83, 0.08);
+}
+
+.calendar-day.empty {
+    background-color: transparent;
+    box-shadow: none;
+}
+
+.calendar-badge,
+.calendar-todo-badge {
+    margin-top: 8px;
+    padding: 5px 8px;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    display: inline-block;
+}
+
+.calendar-badge {
+    background-color: rgba(168, 218, 220, 0.7);
+}
+
+.calendar-todo-badge {
+    background-color: rgba(233, 196, 106, 0.7);
+}
+
+.todo-date-group {
+    margin-bottom: 20px;
+}
+
+.todo-date-group h3 {
+    margin-bottom: 10px;
+}
+
+.event-list li {
+    flex-direction: column;
+    align-items: flex-start;
+}
+
 /* Icons */
 .icon {
     font-size: 2rem;

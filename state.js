@@ -81,7 +81,7 @@ class AppState {
             if (createDiaryEntry) {
                 const entry = new DiaryEntry(
                     Date.now().toString(),
-                    new Date().toISOString().split('T')[0],
+                    todo.date,
                     `ToDo erledigt: ${todo.text}`,
                     { step: false, trot: false, canter: false },
                     3,
@@ -91,6 +91,36 @@ class AppState {
             }
             this.notify();
         }
+    }
+
+    getTodosForDate(date) {
+        return this.todos
+            .filter(todo => todo.date === date)
+            .sort((a, b) => a.completed - b.completed);
+    }
+
+    getEventsForMonth(year, month) {
+        const monthEvents = [];
+        this.calendarEvents.forEach(event => {
+            const eventDate = new Date(event.date);
+            if (event.isRecurring && event.recurrenceType === 'weekly') {
+                // Zeige die nächsten Termine für den Monat
+                const firstOfMonth = new Date(year, month, 1);
+                const lastOfMonth = new Date(year, month + 1, 0);
+                let current = new Date(event.date);
+                while (current <= lastOfMonth) {
+                    if (current >= firstOfMonth) {
+                        monthEvents.push({ ...event, date: current.toISOString().split('T')[0] });
+                    }
+                    current.setDate(current.getDate() + 7);
+                }
+            } else {
+                if (eventDate.getFullYear() === year && eventDate.getMonth() === month) {
+                    monthEvents.push(event);
+                }
+            }
+        });
+        return monthEvents.sort((a, b) => a.date.localeCompare(b.date));
     }
 
     // View wechseln

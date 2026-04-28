@@ -73,13 +73,14 @@ function renderDiary() {
 }
 
 // Formular für neuen Tagebucheintrag
-function showDiaryForm(relatedTodoId = null) {
+function showDiaryForm(relatedTodoId = null, presetDate = null, presetText = '') {
+    const today = new Date().toISOString().split('T')[0];
     const form = document.createElement('form');
     form.className = 'fade-in';
     form.innerHTML = `
         <h3>Neuer Tagebucheintrag</h3>
-        <input type="date" id="diary-date" required>
-        <textarea id="diary-notes" placeholder="Was hast du heute gemacht?"></textarea>
+        <input type="date" id="diary-date" value="${presetDate || today}" required>
+        <textarea id="diary-notes" placeholder="Was hast du heute gemacht?">${presetText}</textarea>
         <div class="checkbox-group">
             <label class="checkbox-item"><input type="checkbox" id="gait-step"> Schritt</label>
             <label class="checkbox-item"><input type="checkbox" id="gait-trot"> Trab</label>
@@ -126,43 +127,122 @@ function showDiaryForm(relatedTodoId = null) {
 
 // Kalender rendern (vereinfacht für MVP)
 function renderCalendar() {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
+
     const container = document.createElement('div');
     container.innerHTML = `
         <h2>Kalender</h2>
         <button class="btn btn-large" id="add-calendar-event">Neuer Termin</button>
-        <div id="calendar-events"></div>
+        <div class="calendar-grid" id="calendar-grid"></div>
+        <div id="calendar-event-list"></div>
     `;
     mainContent.appendChild(container);
 
-    // Events anzeigen
-    const eventsDiv = document.getElementById('calendar-events');
-    state.calendarEvents.forEach(event => {
-        const eventDiv = document.createElement('div');
-        eventDiv.className = 'calendar-event fade-in';
-        const horse = state.horses.find(h => h.id === event.horseId);
-        eventDiv.innerHTML = `
-            <h3>${event.title}</h3>
-            <p>Datum: ${new Date(event.date).toLocaleDateString('de-DE')}</p>
-            <p>Pferd: ${horse ? horse.name : 'Unbekannt'}</p>
-        `;
-        eventsDiv.appendChild(eventDiv);
-    });
+    renderCalendarGrid(currentYear, currentMonth);
+    renderCalendarEventList(currentYear, currentMonth);
 
-    // Event-Listener für neuen Termin
     document.getElementById('add-calendar-event').addEventListener('click', () => showCalendarForm());
+}
+
+function renderCalendarGrid(year, month) {
+    const grid = document.getElementById('calendar-grid');
+    grid.innerHTML = '';
+    let firstDay = new Date(year, month, 1).getDay();
+    firstDay = firstDay === 0 ? 7 : firstDay;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const monthName = new Date(year, month, 1).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+
+    const header = document.createElement('div');
+    header.className = 'calendar-header';
+    header.innerHTML = `<h3>${monthName}</h3>`;
+    grid.appendChild(header);
+
+    const weekdayRow = document.createElement('div');
+    weekdayRow.className = 'calendar-weekdays';
+    ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].forEach(day => {
+        const cell = document.createElement('div');
+        cell.className = 'calendar-weekday';
+        cell.textContent = day;
+        weekdayRow.appendChild(cell);
+    });
+    grid.appendChild(weekdayRow);
+
+    const daysContainer = document.createElement('div');
+    daysContainer.className = 'calendar-days';
+    for (let i = 1; i < firstDay; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'calendar-day empty';
+        daysContainer.appendChild(emptyCell);
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const dayCell = document.createElement('div');
+        dayCell.className = 'calendar-day';
+        dayCell.innerHTML = `<strong>${day}</strong>`;
+        const dayEvents = state.getEventsForMonth(year, month).filter(event => event.date === dateKey);
+        const dayTodos = state.getTodosForDate(dateKey);
+        if (dayEvents.length) {
+            const badge = document.createElement('div');
+            badge.className = 'calendar-badge';
+            badge.textContent = `${dayEvents.length} Termin${dayEvents.length > 1 ? 'e' : ''}`;
+            dayCell.appendChild(badge);
+        }
+        if (dayTodos.length) {
+            const badge = document.createElement('div');
+            badge.className = 'calendar-todo-badge';
+            badge.textContent = `${dayTodos.length} ToDo${dayTodos.length > 1 ? 's' : ''}`;
+            dayCell.appendChild(badge);
+        }
+        daysContainer.appendChild(dayCell);
+    }
+
+    grid.appendChild(daysContainer);
+}
+
+function renderCalendarEventList(year, month) {
+    const list = document.getElementById('calendar-event-list');
+    const events = state.getEventsForMonth(year, month);
+    list.innerHTML = `
+        <h3>Termine im Monat</h3>
+        <ul class="event-list"></ul>
+    `;
+    const ul = list.querySelector('ul');
+    if (events.length === 0) {
+        ul.innerHTML = '<li>Keine Termine im aktuellen Monat.</li>';
+        return;
+    }
+    events.forEach(event => {
+        const horse = state.horses.find(h => h.id === event.horseId);
+        const li = document.createElement('li');
+        li.className = 'calendar-event fade-in';
+        li.innerHTML = `
+            <strong>${event.title}</strong><br>
+            ${new Date(event.date).toLocaleDateString('de-DE')} • ${horse ? horse.name : 'Kein Pferd'}<br>
+            ${event.isRecurring ? 'Wiederholt sich wöchentlich' : 'Einzeln'}
+        `;
+        ul.appendChild(li);
+    });
 }
 
 // Formular für neuen Kalendertermin (vereinfacht)
 function showCalendarForm() {
+    const today = new Date().toISOString().split('T')[0];
     const form = document.createElement('form');
     form.className = 'fade-in';
     form.innerHTML = `
         <h3>Neuer Termin</h3>
         <input type="text" id="event-title" placeholder="Titel" required>
-        <input type="date" id="event-date" required>
+        <input type="date" id="event-date" value="${today}" required>
         <select id="event-horse">
             <option value="">Pferd auswählen</option>
             ${state.horses.map(h => `<option value="${h.id}">${h.name}</option>`).join('')}
+        </select>
+        <select id="event-recurrence">
+            <option value="none">Einzeln</option>
+            <option value="weekly">Wöchentlich</option>
         </select>
         <button type="submit" class="btn">Speichern</button>
         <button type="button" class="btn" id="cancel-calendar">Abbrechen</button>
@@ -175,7 +255,15 @@ function showCalendarForm() {
         const title = document.getElementById('event-title').value;
         const date = document.getElementById('event-date').value;
         const horseId = document.getElementById('event-horse').value;
-        const event = new CalendarEvent(Date.now().toString(), title, date, horseId, false, null);
+        const recurrenceType = document.getElementById('event-recurrence').value;
+        const event = new CalendarEvent(
+            Date.now().toString(),
+            title,
+            date,
+            horseId,
+            recurrenceType !== 'none',
+            recurrenceType === 'weekly' ? 'weekly' : null
+        );
         await state.addCalendarEvent(event);
         renderView('calendar');
     });
@@ -189,24 +277,47 @@ function renderTodos() {
     container.innerHTML = `
         <h2>ToDos</h2>
         <button class="btn btn-large" id="add-todo">Neues ToDo</button>
-        <ul id="todo-list"></ul>
+        <div id="todo-by-date"></div>
     `;
     mainContent.appendChild(container);
 
-    // ToDos anzeigen
-    const list = document.getElementById('todo-list');
-    state.todos.forEach(todo => {
-        const li = document.createElement('li');
-        li.className = `todo-item ${todo.completed ? 'completed' : ''}`;
-        li.innerHTML = `
-            <span>${todo.text} (${new Date(todo.date).toLocaleDateString('de-DE')})</span>
-            <button class="btn" data-id="${todo.id}" ${todo.completed ? 'disabled' : ''}>Erledigt</button>
-        `;
-        list.appendChild(li);
-    });
+    const grouped = state.todos
+        .slice()
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .reduce((acc, todo) => {
+            acc[todo.date] = acc[todo.date] || [];
+            acc[todo.date].push(todo);
+            return acc;
+        }, {});
 
-    // Event-Listener für Erledigt-Button
-    list.addEventListener('click', async (e) => {
+    const listContainer = document.getElementById('todo-by-date');
+    if (state.todos.length === 0) {
+        listContainer.innerHTML = '<p>Du hast noch keine ToDos. Füge gleich ein neues hinzu!</p>';
+    } else {
+        Object.entries(grouped).forEach(([date, todos]) => {
+            const section = document.createElement('div');
+            section.className = 'todo-date-group';
+            section.innerHTML = `<h3>${new Date(date).toLocaleDateString('de-DE')}</h3>`;
+            const ul = document.createElement('ul');
+            todos.forEach(todo => {
+                const li = document.createElement('li');
+                li.className = `todo-item ${todo.completed ? 'completed' : ''}`;
+                const horse = state.horses.find(h => h.id === todo.horseId);
+                li.innerHTML = `
+                    <div>
+                        <strong>${todo.text}</strong><br>
+                        ${horse ? `Pferd: ${horse.name}` : 'Kein Pferd zugeordnet'}
+                    </div>
+                    <button class="btn" data-id="${todo.id}" ${todo.completed ? 'disabled' : ''}>Erledigt</button>
+                `;
+                ul.appendChild(li);
+            });
+            section.appendChild(ul);
+            listContainer.appendChild(section);
+        });
+    }
+
+    listContainer.addEventListener('click', async (e) => {
         if (e.target.tagName === 'BUTTON' && e.target.textContent === 'Erledigt') {
             const todoId = e.target.dataset.id;
             const createEntry = confirm('Möchtest du einen Tagebucheintrag für dieses ToDo erstellen?');
@@ -215,18 +326,18 @@ function renderTodos() {
         }
     });
 
-    // Event-Listener für neues ToDo
     document.getElementById('add-todo').addEventListener('click', () => showTodoForm());
 }
 
 // Formular für neues ToDo
 function showTodoForm() {
+    const today = new Date().toISOString().split('T')[0];
     const form = document.createElement('form');
     form.className = 'fade-in';
     form.innerHTML = `
         <h3>Neues ToDo</h3>
         <input type="text" id="todo-text" placeholder="Was musst du tun?" required>
-        <input type="date" id="todo-date" required>
+        <input type="date" id="todo-date" value="${today}" required>
         <select id="todo-horse">
             <option value="">Pferd auswählen (optional)</option>
             ${state.horses.map(h => `<option value="${h.id}">${h.name}</option>`).join('')}

@@ -1,6 +1,6 @@
 // ui.js - UI-Komponenten und -Logik für ReitApp Charlotte
 
-import state from './state.js';
+import { state } from './state.js';
 import { Horse, DiaryEntry, CalendarEvent, Todo } from './models.js';
 
 // DOM-Elemente

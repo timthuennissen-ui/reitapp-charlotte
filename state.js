@@ -1,5 +1,8 @@
 // state.js - Zentraler State für ReitApp Charlotte
 
+import { db } from './db.js';
+import { DiaryEntry } from './models.js';
+
 class AppState {
     constructor() {
         this.horses = [];
@@ -21,7 +24,6 @@ class AppState {
 
     // Daten laden aus DB
     async loadData() {
-        const db = await import('./db.js').then(m => m.default || m);
         await db.init();
         this.horses = await db.getAll('horses');
         this.diaryEntries = await db.getAll('diaryEntries');
@@ -32,7 +34,6 @@ class AppState {
 
     // Daten speichern in DB
     async saveData(storeName, data) {
-        const db = await import('./db.js').then(m => m.default || m);
         await db.init();
         if (Array.isArray(data)) {
             for (const item of data) {
@@ -78,7 +79,7 @@ class AppState {
             todo.completed = true;
             await this.saveData('todos', todo);
             if (createDiaryEntry) {
-                const entry = new (await import('./models.js')).DiaryEntry(
+                const entry = new DiaryEntry(
                     Date.now().toString(),
                     new Date().toISOString().split('T')[0],
                     `ToDo erledigt: ${todo.text}`,
@@ -100,9 +101,4 @@ class AppState {
 }
 
 // Singleton-Instanz
-const state = new AppState();
-
-// Export
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = state;
-}
+export const state = new AppState();

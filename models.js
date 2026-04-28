@@ -48,7 +48,4 @@ class Todo {
     }
 }
 
-// Export für Module
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { Horse, DiaryEntry, CalendarEvent, Todo };
-}
+export { Horse, DiaryEntry, CalendarEvent, Todo };

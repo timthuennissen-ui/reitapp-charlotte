@@ -78,9 +78,4 @@ class Database {
 }
 
 // Singleton-Instanz
-const db = new Database();
-
-// Export
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = db;
-}
+export const db = new Database();

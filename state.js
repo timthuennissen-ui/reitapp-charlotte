@@ -1,5 +1,8 @@
 // state.js - Zentraler State für ReitApp Charlotte
 
+import { db } from './db.js';
+import { DiaryEntry } from './models.js';
+
 class AppState {
     constructor() {
         this.horses = [];
@@ -21,7 +24,6 @@ class AppState {
 
     // Daten laden aus DB
     async loadData() {
-        const db = await import('./db.js').then(m => m.default || m);
         await db.init();
         this.horses = await db.getAll('horses');
         this.diaryEntries = await db.getAll('diaryEntries');
@@ -32,7 +34,6 @@ class AppState {
 
     // Daten speichern in DB
     async saveData(storeName, data) {
-        const db = await import('./db.js').then(m => m.default || m);
         await db.init();
         if (Array.isArray(data)) {
             for (const item of data) {
@@ -78,9 +79,9 @@ class AppState {
             todo.completed = true;
             await this.saveData('todos', todo);
             if (createDiaryEntry) {
-                const entry = new (await import('./models.js')).DiaryEntry(
+                const entry = new DiaryEntry(
                     Date.now().toString(),
-                    new Date().toISOString().split('T')[0],
+                    todo.date,
                     `ToDo erledigt: ${todo.text}`,
                     { step: false, trot: false, canter: false },
                     3,
@@ -92,6 +93,36 @@ class AppState {
         }
     }
 
+    getTodosForDate(date) {
+        return this.todos
+            .filter(todo => todo.date === date)
+            .sort((a, b) => a.completed - b.completed);
+    }
+
+    getEventsForMonth(year, month) {
+        const monthEvents = [];
+        this.calendarEvents.forEach(event => {
+            const eventDate = new Date(event.date);
+            if (event.isRecurring && event.recurrenceType === 'weekly') {
+                // Zeige die nächsten Termine für den Monat
+                const firstOfMonth = new Date(year, month, 1);
+                const lastOfMonth = new Date(year, month + 1, 0);
+                let current = new Date(event.date);
+                while (current <= lastOfMonth) {
+                    if (current >= firstOfMonth) {
+                        monthEvents.push({ ...event, date: current.toISOString().split('T')[0] });
+                    }
+                    current.setDate(current.getDate() + 7);
+                }
+            } else {
+                if (eventDate.getFullYear() === year && eventDate.getMonth() === month) {
+                    monthEvents.push(event);
+                }
+            }
+        });
+        return monthEvents.sort((a, b) => a.date.localeCompare(b.date));
+    }
+
     // View wechseln
     setView(view) {
         this.currentView = view;
@@ -100,9 +131,4 @@ class AppState {
 }
 
 // Singleton-Instanz
-const state = new AppState();
-
-// Export
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = state;
-}
+export const state = new AppState();

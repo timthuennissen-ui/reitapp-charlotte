@@ -148,10 +148,34 @@ class AppState {
         this.notify();
     }
 
+    async saveDiaryEntry(entry) {
+        const existingById = this.diaryEntries.find(e => e.id === entry.id);
+        const existingByDate = this.diaryEntries.find(e => e.date === entry.date);
+        if (existingById) {
+            existingById.notes = entry.notes;
+            existingById.gaits = entry.gaits;
+            existingById.rating = entry.rating;
+            existingById.relatedTodoId = entry.relatedTodoId;
+            await this.saveData('diaryEntries', existingById);
+        } else if (existingByDate) {
+            existingByDate.notes = entry.notes;
+            existingByDate.gaits = entry.gaits;
+            existingByDate.rating = entry.rating;
+            existingByDate.relatedTodoId = entry.relatedTodoId;
+            await this.saveData('diaryEntries', existingByDate);
+        } else {
+            this.diaryEntries.push(entry);
+            await this.saveData('diaryEntries', entry);
+        }
+    }
+
     async addDiaryEntry(entry) {
-        this.diaryEntries.push(entry);
-        await this.saveData('diaryEntries', entry);
+        await this.saveDiaryEntry(entry);
         this.notify();
+    }
+
+    getDiaryEntryForDate(date) {
+        return this.diaryEntries.find(entry => entry.date === date);
     }
 
     async addCalendarEvent(event) {
@@ -172,15 +196,22 @@ class AppState {
             todo.completed = true;
             await this.saveData('todos', todo);
             if (createDiaryEntry) {
-                const entry = new DiaryEntry(
-                    Date.now().toString(),
-                    todo.date,
-                    `ToDo erledigt: ${todo.text}`,
-                    { step: false, trot: false, canter: false },
-                    3,
-                    todoId
-                );
-                await this.addDiaryEntry(entry);
+                const existingEntry = this.getDiaryEntryForDate(todo.date);
+                if (existingEntry) {
+                    const noteLine = existingEntry.notes ? existingEntry.notes + '\n\n' : '';
+                    existingEntry.notes = noteLine + `Erledigte ToDo: ${todo.text}`;
+                    await this.saveDiaryEntry(existingEntry);
+                } else {
+                    const entry = new DiaryEntry(
+                        Date.now().toString(),
+                        todo.date,
+                        `Erledigte ToDo: ${todo.text}`,
+                        { step: false, trot: false, canter: false },
+                        3,
+                        todoId
+                    );
+                    await this.addDiaryEntry(entry);
+                }
             }
             this.notify();
         }
@@ -244,46 +275,66 @@ function renderView(view) {
 
 function renderDiary() {
     const container = document.createElement('div');
+    container.className = 'page-card';
     container.innerHTML = `
-        <h2>Reittagebuch</h2>
+        <h2 class="section-title">Reittagebuch</h2>
+        <p class="section-intro">Hier kannst du eintragen, was du heute mit deinem Pferd erlebt hast.</p>
         <button class="btn btn-large" id="add-diary-entry">Neuer Eintrag</button>
         <div id="diary-entries"></div>
     `;
     mainContent.appendChild(container);
 
     const entriesDiv = document.getElementById('diary-entries');
-    state.diaryEntries.forEach(entry => {
-        const entryDiv = document.createElement('div');
-        entryDiv.className = 'diary-entry fade-in';
-        entryDiv.innerHTML = `
-            <h3>${new Date(entry.date).toLocaleDateString('de-DE')}</h3>
-            <p>${entry.notes}</p>
-            <p>Gangarten: ${entry.gaits.step ? 'Schritt ' : ''}${entry.gaits.trot ? 'Trab ' : ''}${entry.gaits.canter ? 'Galopp' : ''}</p>
-            <div class="stars">
-                ${Array.from({ length: 5 }, (_, i) => `<span class="star ${i < entry.rating ? 'active' : ''}">★</span>`).join('')}
-            </div>
-        `;
-        entriesDiv.appendChild(entryDiv);
-    });
+    if (state.diaryEntries.length === 0) {
+        entriesDiv.innerHTML = '<p>Hier wird dein Reittagebuch beginnen. Drücke oben auf "Neuer Eintrag".</p>';
+    } else {
+        state.diaryEntries.sort((a, b) => b.date.localeCompare(a.date)).forEach(entry => {
+            const completedTodos = state.getTodosForDate(entry.date).filter(todo => todo.completed);
+            const entryDiv = document.createElement('div');
+            entryDiv.className = 'diary-entry fade-in';
+            entryDiv.innerHTML = `
+                <div class="entry-header">
+                    <div>
+                        <h3>${new Date(entry.date).toLocaleDateString('de-DE')}</h3>
+                        <p>Gangarten: ${entry.gaits.step ? 'Schritt ' : ''}${entry.gaits.trot ? 'Trab ' : ''}${entry.gaits.canter ? 'Galopp' : ''}</p>
+                    </div>
+                    <button class="btn edit-entry" data-id="${entry.id}">Bearbeiten</button>
+                </div>
+                <p>${entry.notes || 'Keine Notizen'}</p>
+                <div class="stars">
+                    ${Array.from({ length: 5 }, (_, i) => `<span class="star ${i < entry.rating ? 'active' : ''}">★</span>`).join('')}
+                </div>
+                ${completedTodos.length ? `<div class="completed-todos"><h4>Erledigte ToDos</h4><ul>${completedTodos.map(todo => `<li>${todo.text}</li>`).join('')}</ul></div>` : ''}
+            `;
+            entryDiv.querySelector('.edit-entry').addEventListener('click', () => showDiaryForm(entry));
+            entriesDiv.appendChild(entryDiv);
+        });
+    }
 
     document.getElementById('add-diary-entry').addEventListener('click', () => showDiaryForm());
 }
 
-function showDiaryForm(relatedTodoId = null, presetDate = null, presetText = '') {
+function showDiaryForm(entry = null, relatedTodoId = null, presetDate = null, presetText = '') {
     const today = new Date().toISOString().split('T')[0];
+    const isEdit = Boolean(entry);
+    const selectedDate = isEdit ? entry.date : (presetDate || today);
+    const existingEntry = !isEdit ? state.getDiaryEntryForDate(selectedDate) : entry;
+    const notesText = isEdit ? entry.notes : (presetText || '');
+    const currentGaits = isEdit ? entry.gaits : { step: false, trot: false, canter: false };
+    const currentRating = isEdit ? entry.rating : 0;
     const form = document.createElement('form');
     form.className = 'fade-in';
     form.innerHTML = `
-        <h3>Neuer Tagebucheintrag</h3>
-        <input type="date" id="diary-date" value="${presetDate || today}" required>
-        <textarea id="diary-notes" placeholder="Was hast du heute gemacht?">${presetText}</textarea>
+        <h3>${isEdit ? 'Eintrag bearbeiten' : 'Neuer Tagebucheintrag'}</h3>
+        <input type="date" id="diary-date" value="${selectedDate}" ${isEdit ? 'disabled' : ''} required>
+        <textarea id="diary-notes" placeholder="Was hast du heute gemacht?">${notesText}</textarea>
         <div class="checkbox-group">
-            <label class="checkbox-item"><input type="checkbox" id="gait-step"> Schritt</label>
-            <label class="checkbox-item"><input type="checkbox" id="gait-trot"> Trab</label>
-            <label class="checkbox-item"><input type="checkbox" id="gait-canter"> Galopp</label>
+            <label class="checkbox-item"><input type="checkbox" id="gait-step" ${currentGaits.step ? 'checked' : ''}> Schritt</label>
+            <label class="checkbox-item"><input type="checkbox" id="gait-trot" ${currentGaits.trot ? 'checked' : ''}> Trab</label>
+            <label class="checkbox-item"><input type="checkbox" id="gait-canter" ${currentGaits.canter ? 'checked' : ''}> Galopp</label>
         </div>
         <div class="stars" id="rating-stars">
-            ${Array.from({ length: 5 }, (_, i) => `<span class="star" data-rating="${i + 1}">★</span>`).join('')}
+            ${Array.from({ length: 5 }, (_, i) => `<span class="star ${i < currentRating ? 'active' : ''}" data-rating="${i + 1}">★</span>`).join('')}
         </div>
         <button type="submit" class="btn">Speichern</button>
         <button type="button" class="btn" id="cancel-diary">Abbrechen</button>
@@ -291,7 +342,7 @@ function showDiaryForm(relatedTodoId = null, presetDate = null, presetText = '')
     mainContent.innerHTML = '';
     mainContent.appendChild(form);
 
-    let rating = 0;
+    let rating = currentRating;
     document.getElementById('rating-stars').addEventListener('click', function (e) {
         if (e.target.classList.contains('star')) {
             rating = parseInt(e.target.dataset.rating, 10);
@@ -310,8 +361,17 @@ function showDiaryForm(relatedTodoId = null, presetDate = null, presetText = '')
             trot: document.getElementById('gait-trot').checked,
             canter: document.getElementById('gait-canter').checked
         };
-        const entry = new DiaryEntry(Date.now().toString(), date, notes, gaits, rating, relatedTodoId);
-        await state.addDiaryEntry(entry);
+        if (!isEdit) {
+            const existing = state.getDiaryEntryForDate(date);
+            if (existing) {
+                alert('Für diesen Tag gibt es bereits einen Eintrag. Wir öffnen ihn zum Bearbeiten.');
+                showDiaryForm(existing);
+                return;
+            }
+        }
+        const entryId = isEdit ? entry.id : Date.now().toString();
+        const diaryEntry = new DiaryEntry(entryId, date, notes, gaits, rating, relatedTodoId);
+        await state.addDiaryEntry(diaryEntry);
         renderView('diary');
     });
 
@@ -325,8 +385,10 @@ function renderCalendar() {
     const currentYear = today.getFullYear();
     const currentMonth = today.getMonth();
     const container = document.createElement('div');
+    container.className = 'page-card';
     container.innerHTML = `
-        <h2>Kalender</h2>
+        <h2 class="section-title">Kalender</h2>
+        <p class="section-intro">Plane Termine und sehe, wann du mit welchem Pferd reitest.</p>
         <button class="btn btn-large" id="add-calendar-event">Neuer Termin</button>
         <div class="calendar-grid" id="calendar-grid"></div>
         <div id="calendar-event-list"></div>
@@ -466,8 +528,10 @@ function showCalendarForm() {
 
 function renderTodos() {
     const container = document.createElement('div');
+    container.className = 'page-card';
     container.innerHTML = `
-        <h2>ToDos</h2>
+        <h2 class="section-title">ToDos</h2>
+        <p class="section-intro">Schreibe Aufgaben auf und hake sie ab, wenn sie erledigt sind.</p>
         <button class="btn btn-large" id="add-todo">Neues ToDo</button>
         <div id="todo-by-date"></div>
     `;
@@ -555,8 +619,10 @@ function showTodoForm() {
 
 function renderHorses() {
     const container = document.createElement('div');
+    container.className = 'page-card';
     container.innerHTML = `
-        <h2>Pferde</h2>
+        <h2 class="section-title">Pferde</h2>
+        <p class="section-intro">Speichere hier die Pferde deiner Reitbeteiligung.</p>
         <button class="btn btn-large" id="add-horse">Neues Pferd</button>
         <div id="horse-list"></div>
     `;

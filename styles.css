@@ -63,9 +63,81 @@ h1 {
 }
 
 main {
-    padding: 20px;
+    padding: 20px 20px 40px;
     max-width: 1200px;
     margin: 0 auto;
+}
+
+.page-card {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: calc(var(--border-radius) * 1.2);
+    padding: 20px;
+    box-shadow: 0 10px 25px rgba(38, 70, 83, 0.08);
+    margin-bottom: 20px;
+}
+
+.section-title {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 2rem;
+}
+
+.section-intro {
+    margin: 0 0 15px;
+    font-size: 1.1rem;
+    opacity: 0.85;
+}
+
+.entry-header,
+.todo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.diary-entry,
+.horse-card,
+.calendar-event,
+.todo-item,
+.todo-date-group {
+    background-color: var(--secondary-color);
+    border-radius: var(--border-radius);
+    padding: 18px;
+    margin: 10px 0;
+    box-shadow: 0 4px 10px rgba(38, 70, 83, 0.05);
+}
+
+.diary-entry p,
+.todo-item p,
+.calendar-event p,
+.horse-card p {
+    margin: 8px 0;
+}
+
+.completed-todos {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 2px dashed rgba(38, 70, 83, 0.16);
+}
+
+.completed-todos h4 {
+    margin: 0 0 8px;
+}
+
+.completed-todos ul {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.todo-item {
+    justify-content: space-between;
+    align-items: center;
+}
+
+.todo-item button {
+    min-width: 130px;
 }
 
 /* Allgemeine Button-Stile */

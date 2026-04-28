@@ -1,0 +1,212 @@
+/* ReitApp Charlotte - Styles für kindgerechte UI */
+
+:root {
+    --primary-color: #A8DADC; /* Pastellblau */
+    --secondary-color: #F1FAEE; /* Hellgrün */
+    --accent-color: #E9C46A; /* Pastellgelb */
+    --text-color: #264653; /* Dunkelblau */
+    --light-bg: #F7F9FB; /* Sehr hell */
+    --border-radius: 15px;
+    --button-size: 60px;
+    --font-size-large: 1.5rem;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: var(--light-bg);
+    color: var(--text-color);
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+}
+
+header {
+    background-color: var(--primary-color);
+    padding: 20px;
+    text-align: center;
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+h1 {
+    margin: 0;
+    font-size: 2.5rem;
+    color: var(--text-color);
+}
+
+#nav {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.nav-btn {
+    background-color: var(--secondary-color);
+    border: 2px solid var(--primary-color);
+    border-radius: var(--border-radius);
+    padding: 15px 20px;
+    font-size: var(--font-size-large);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 120px;
+}
+
+.nav-btn:hover {
+    background-color: var(--accent-color);
+    transform: scale(1.05);
+}
+
+.nav-btn.active {
+    background-color: var(--accent-color);
+    border-color: var(--text-color);
+}
+
+main {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Allgemeine Button-Stile */
+.btn {
+    background-color: var(--primary-color);
+    border: none;
+    border-radius: var(--border-radius);
+    padding: 15px 25px;
+    font-size: var(--font-size-large);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin: 10px;
+    min-height: var(--button-size);
+}
+
+.btn:hover {
+    background-color: var(--accent-color);
+    transform: scale(1.05);
+}
+
+.btn-large {
+    padding: 20px 30px;
+    font-size: 2rem;
+}
+
+/* Formulare */
+form {
+    background-color: var(--secondary-color);
+    padding: 20px;
+    border-radius: var(--border-radius);
+    margin-bottom: 20px;
+}
+
+input, textarea, select {
+    width: 100%;
+    padding: 15px;
+    margin: 10px 0;
+    border: 2px solid var(--primary-color);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-large);
+    box-sizing: border-box;
+}
+
+textarea {
+    height: 100px;
+    resize: vertical;
+}
+
+/* Checkboxen und Radio-Buttons */
+.checkbox-group, .radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin: 15px 0;
+}
+
+.checkbox-item, .radio-item {
+    display: flex;
+    align-items: center;
+    font-size: var(--font-size-large);
+}
+
+.checkbox-item input, .radio-item input {
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+}
+
+/* Sternebewertung */
+.stars {
+    display: flex;
+    gap: 10px;
+    font-size: 2rem;
+}
+
+.star {
+    cursor: pointer;
+    color: #ddd;
+    transition: color 0.3s ease;
+}
+
+.star.active {
+    color: var(--accent-color);
+}
+
+/* Listen */
+ul {
+    list-style: none;
+    padding: 0;
+}
+
+li {
+    background-color: var(--secondary-color);
+    margin: 10px 0;
+    padding: 15px;
+    border-radius: var(--border-radius);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Icons */
+.icon {
+    font-size: 2rem;
+    margin-right: 10px;
+}
+
+/* Animationen */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes check {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.check-animation {
+    animation: check 0.6s ease;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .nav-btn {
+        padding: 10px 15px;
+        font-size: 1.2rem;
+        min-width: 100px;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    .btn {
+        padding: 12px 20px;
+        font-size: 1.2rem;
+    }
+}
